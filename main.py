@@ -35,4 +35,13 @@ print("--- Scheduler Decisions ---")
 for note in scheduler.explain_plan():
     print(f"  {note}")
 
+print()
+print("--- Conflict Warnings ---")
+warnings = scheduler.detect_conflicts()
+if warnings:
+    for w in warnings:
+        print(f"  WARNING: {w}")
+else:
+    print("  No conflicts detected.")
+
 print("=" * 40)

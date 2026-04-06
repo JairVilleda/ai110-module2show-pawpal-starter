@@ -1,6 +1,19 @@
 import streamlit as st
+from pawpal_system import Owner, Pet, Task, Scheduler
+
+
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
+
+# --- Session state initialization ---
+if "owner" not in st.session_state:
+    st.session_state.owner = Owner(name="Jordan", available_time=120)
+
+if "scheduler" not in st.session_state:
+    st.session_state.scheduler = Scheduler(owner=st.session_state.owner)
+
+owner = st.session_state.owner
+scheduler = st.session_state.scheduler
 
 st.title("🐾 PawPal+")
 
@@ -42,6 +55,23 @@ st.subheader("Quick Demo Inputs (UI only)")
 owner_name = st.text_input("Owner name", value="Jordan")
 pet_name = st.text_input("Pet name", value="Mochi")
 species = st.selectbox("Species", ["dog", "cat", "other"])
+pet_age = st.number_input("Pet age", min_value=0, max_value=30, value=0)
+
+if "pets" not in st.session_state:
+    st.session_state.pets = []
+
+if st.button("Add Pet"):
+    new_pet = Pet(name=pet_name, species=species, age=pet_age)
+    st.session_state.owner.add_pet(new_pet)
+    st.session_state.pets = st.session_state.owner.get_pets()
+    st.success(f"Added {new_pet.get_info()} to {owner.name}'s pets!")
+
+current_pets = st.session_state.owner.get_pets()
+if current_pets:
+    st.write("Current pets:")
+    st.table([{"name": p.name, "species": p.species, "age": p.age} for p in current_pets])
+else:
+    st.info("No pets yet. Add one above.")
 
 st.markdown("### Tasks")
 st.caption("Add a few tasks. In your final version, these should feed into your scheduler.")
@@ -57,14 +87,23 @@ with col2:
 with col3:
     priority = st.selectbox("Priority", ["low", "medium", "high"], index=2)
 
+PRIORITY_MAP = {"low": 1, "medium": 2, "high": 3}
+
 if st.button("Add task"):
-    st.session_state.tasks.append(
-        {"title": task_title, "duration_minutes": int(duration), "priority": priority}
+    new_task = Task(
+        title=task_title,
+        duration=int(duration),
+        priority=PRIORITY_MAP[priority],
+        pet_name=pet_name,
     )
+    matched_pet = next((p for p in current_pets if p.name == pet_name), None)
+    if matched_pet:
+        matched_pet.add_task(new_task)
+    st.session_state.tasks.append(new_task)
 
 if st.session_state.tasks:
     st.write("Current tasks:")
-    st.table(st.session_state.tasks)
+    st.table([{"pet": t.pet_name, "title": t.title, "duration (min)": t.duration, "priority": t.priority} for t in st.session_state.tasks])
 else:
     st.info("No tasks yet. Add one above.")
 

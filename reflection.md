@@ -7,14 +7,17 @@
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
 I included the 4 classes: Owner, Per, Task, Scheduler
-The Owner class stores owner info, available time, preferences, and their pets. It managaes adding and listing pets. The Pet class holds basic pet info like the name, species, and age. The Task class represents a care task with a title, duration, priority, pet assignment, and preferred time. The Scheduler manages tasks, generates a daily plan based on priorities and constraints, and provides an explanation for scheduling decisions.
+The Owner class stores owner info, available time, preferences, and their pets. It manages adding and listing pets. The Pet class holds basic pet info like the name, species, and age. The Task class represents a care task with a title, duration, priority, pet assignment, and preferred time. The Scheduler manages tasks, generates a daily plan based on priorities and constraints, and provides an explanation for scheduling decisions. 
+An Owner owns multiple pets
+A Pet has multiple tasks
+The Scheduler schedules Tasks to create the daily plan
 
 **b. Design changes**
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
 
-My design did not change during implemenation. I focused on brainstorming the initial UML design with Claude to ensure it was the best implementation. **
+Yes, the design changed slightly during implementation. One key change was that the Scheduler class originally had no reference to the owner, which made it harder to acces the owner's available time and preferences when generating a plan. I updated Scheduler to optionally store an Owner and also allow passing an Owner as a parameter to generate_plan(). This ensures that the Scheduler can always consider constraints and priorities correctly when creating the daily schedule.
 ---
 
 ## 2. Scheduling Logic and Tradeoffs

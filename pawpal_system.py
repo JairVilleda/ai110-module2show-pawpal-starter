@@ -1,4 +1,6 @@
+from itertools import combinations
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 from typing import Optional
 
 
@@ -33,13 +35,33 @@ class Task:
     duration: int          # minutes
     priority: int          # e.g. 1 (low) to 3 (high)
     pet_name: str
-    preferred_time: Optional[str] = None  # "morning", "afternoon", or "evening"
-    is_planned: bool = False               # set to True when scheduler includes this task
-    is_completed: bool = False             # set to True when task is marked done
+    preferred_time: Optional[str] = None   # "morning", "afternoon", or "evening"
+    is_planned: bool = False                # set to True when scheduler includes this task
+    is_completed: bool = False              # set to True when task is marked done
+    frequency: Optional[str] = None        # "daily" or "weekly"
+    due_date: Optional[date] = None
 
     def mark_complete(self) -> None:
         """Mark this task as completed."""
         self.is_completed = True
+
+    def next_occurrence(self) -> Optional["Task"]:
+        """Return a copy of this task with due_date advanced by its frequency interval.
+
+        Returns None if frequency or due_date is not set.
+        """
+        intervals = {"daily": timedelta(days=1), "weekly": timedelta(weeks=1)}
+        if self.frequency not in intervals or self.due_date is None:
+            return None
+        return Task(
+            title=self.title,
+            duration=self.duration,
+            priority=self.priority,
+            pet_name=self.pet_name,
+            preferred_time=self.preferred_time,
+            frequency=self.frequency,
+            due_date=self.due_date + intervals[self.frequency],
+        )
 
     def get_priority_score(self, current_time_block: Optional[str] = None) -> int:
         """Return the task's priority score, boosted by 1 if the time block matches preferred_time."""
@@ -125,3 +147,48 @@ class Scheduler:
     def explain_plan(self) -> list[str]:
         """Return the list of explanation messages for scheduling decisions."""
         return self.explanation
+
+    def complete_task(self, task: Task, owner: Optional[Owner] = None) -> Optional[Task]:
+        """Mark a task complete and, if recurring, add the next occurrence to the matching pet."""
+        task.mark_complete()
+        next_task = task.next_occurrence()
+        if next_task:
+            active_owner = owner or self.owner
+            for pet in active_owner.get_pets():
+                if pet.name == task.pet_name:
+                    pet.add_task(next_task)
+                    break
+        return next_task
+
+    def filter_tasks(
+        self,
+        pet_name: Optional[str] = None,
+        completed: Optional[bool] = None,
+    ) -> list[Task]:
+        """Return tasks from self.plan matching the given pet_name and/or completed status."""
+        return [
+            t for t in self.plan
+            if (pet_name is None or t.pet_name == pet_name)
+            and (completed is None or t.is_completed == completed)
+        ]
+
+    def detect_conflicts(self) -> list[str]:
+        """Return warning messages for tasks that share the same preferred_time."""
+        warnings = []
+        by_time: dict[str, list[Task]] = {}
+
+        for task in self.plan:
+            if task.preferred_time is None:
+                continue
+            by_time.setdefault(task.preferred_time, []).append(task)
+
+        for time, tasks in by_time.items():
+            for a, b in combinations(tasks, 2):
+                warnings.append(f"Conflict at '{time}': '{a.title}' and '{b.title}' overlap")
+
+        return warnings
+
+    def sort_by_time(self) -> list[Task]:
+        """Return a new list of planned tasks sorted by preferred_time (morning → afternoon → evening)."""
+        time_order = {"morning": 0, "afternoon": 1, "evening": 2}
+        return sorted(self.plan, key=lambda t: time_order.get(t.preferred_time, 3))
