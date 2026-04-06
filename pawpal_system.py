@@ -76,10 +76,9 @@ class Task:
 
 
 class Owner:
-    def __init__(self, name: str, available_time: int, preferences: Optional[dict] = None) -> None:
+    def __init__(self, name: str, available_time: int) -> None:
         self.name: str = name
         self.available_time: int = available_time
-        self.preferences: dict = preferences or {}
         self.pets: list[Pet] = []
 
     def add_pet(self, pet: Pet) -> None:
@@ -106,9 +105,6 @@ class Owner:
         """Update the owner's available time in minutes."""
         self.available_time = time
 
-    def update_preferences(self, prefs: dict) -> None:
-        """Replace the owner's preferences with the given dictionary."""
-        self.preferences = prefs
 
 
 class Scheduler:
